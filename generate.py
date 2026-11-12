@@ -41,10 +41,10 @@ for i, e in enumerate(reversed(new)):
         "最初に記事のタイトルを紹介し、要点、背景、放送業界にとっての意味の順で話してください。\n\n"
         f"タイトル: {e.title}\n本文:\n{body}"
     )
-    script = client.models.generate_content(model="gemini-2.5-flash", contents=prompt).text
+    script = client.models.generate_content(model="gemini-3.8-flash", contents=prompt).text
 
     res = client.models.generate_content(
-        model="gemini-2.5-flash-preview-tts",
+        model="gemini-3.8-flash-tts",
         contents=script,
         config=types.GenerateContentConfig(
             response_modalities=["AUDIO"],
