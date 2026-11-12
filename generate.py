@@ -44,7 +44,7 @@ for i, e in enumerate(reversed(new)):
     script = client.models.generate_content(model="gemini-3.8-flash", contents=prompt).text
 
     res = client.models.generate_content(
-        model="gemini-3.8-flash-tts",
+        model="gemini-3.1-flash-tts",
         contents=script,
         config=types.GenerateContentConfig(
             response_modalities=["AUDIO"],
