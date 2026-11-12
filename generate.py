@@ -1,4 +1,4 @@
-import os, re, json, html, wave, subprocess, datetime, pathlib
+import os, re, json, html, wave, time, shutil, subprocess, datetime, pathlib
 import requests, feedparser
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
@@ -7,8 +7,15 @@ from google.genai import types
 
 SITE = "https://minpo.online/"
 MAX_NEW = 3  # 1回に音声化する最大本数
+TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"]
+TTS_MODELS = ["gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts", "gemini-3.1-flash-tts"]
 UA = {"User-Agent": "Mozilla/5.0"}
-client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+
+try:
+    opts = types.HttpOptions(timeout=180000, retry_options=types.HttpRetryOptions(attempts=2))
+except Exception:
+    opts = types.HttpOptions(timeout=180000)
+client = genai.Client(api_key=os.environ["GEMINI_API_KEY"], http_options=opts)
 
 root = pathlib.Path("docs")
 audio_dir = root / "audio"
@@ -16,6 +23,18 @@ audio_dir.mkdir(parents=True, exist_ok=True)
 db_path = root / "episodes.json"
 eps = json.loads(db_path.read_text(encoding="utf-8")) if db_path.exists() else []
 done = {e["link"] for e in eps}
+
+
+def ask(models, contents, config=None):
+    for _ in range(3):
+        for m in models:
+            try:
+                return client.models.generate_content(model=m, contents=contents, config=config)
+            except Exception as ex:
+                print(f"{m} 失敗: {str(ex)[:150]}")
+        time.sleep(60)
+    return None
+
 
 def find_feed():
     s = BeautifulSoup(requests.get(SITE, headers=UA, timeout=30).text, "html.parser")
@@ -26,51 +45,86 @@ def find_feed():
             return urljoin(SITE, a["href"])
     raise SystemExit("RSSが見つかりませんでした")
 
+
+def build_page():
+    cards = []
+    for x in eps:
+        cards.append(
+            f'<li><p class="d">{x["date"]}</p><h2>{html.escape(x["title"])}</h2>'
+            f'<audio controls preload="none" src="{x["file"]}"></audio>'
+            f'<a href="{html.escape(x["link"])}" target="_blank">元の記事を読む</a></li>'
+        )
+    body = "\n".join(cards) or "<p>まだ音声はありません。</p>"
+    page = f"""<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>音声ニュース</title>
+<style>
+body{{font-family:-apple-system,sans-serif;margin:0;padding:16px;background:#f6f6f4;color:#222}}
+@media (prefers-color-scheme:dark){{body{{background:#111;color:#eee}}li{{background:#1c1c1c!important}}}}
+h1{{font-size:22px}} ul{{list-style:none;padding:0}}
+li{{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px}}
+h2{{font-size:17px;margin:4px 0 10px}} .d{{font-size:13px;opacity:.6;margin:0}}
+audio{{width:100%}} a{{display:inline-block;margin-top:8px;font-size:14px;color:#3a7bd5}}
+</style></head><body>
+<h1>新着の音声解説</h1><ul>
+{body}
+</ul></body></html>"""
+    (root / "index.html").write_text(page, encoding="utf-8")
+
+
 feed = feedparser.parse(requests.get(find_feed(), headers=UA, timeout=30).content)
 new = [e for e in feed.entries if e.link not in done][:MAX_NEW]
 
 for i, e in enumerate(reversed(new)):
-    page = BeautifulSoup(requests.get(e.link, headers=UA, timeout=30).text, "html.parser")
-    for t in page(["script", "style", "nav", "header", "footer"]):
-        t.decompose()
-    body = (page.find("article") or page.body).get_text("\n", strip=True)[:20000]
+    try:
+        page = BeautifulSoup(requests.get(e.link, headers=UA, timeout=30).text, "html.parser")
+        for t in page(["script", "style", "nav", "header", "footer"]):
+            t.decompose()
+        text = (page.find("article") or page.body).get_text("\n", strip=True)[:20000]
 
-    prompt = (
-        "次の記事を、通勤中に耳で聞いて理解できる日本語の解説原稿にしてください。"
-        "読み上げて約5分（1500字前後）。見出しや記号は使わず、話し言葉で。"
-        "最初に記事のタイトルを紹介し、要点、背景、放送業界にとっての意味の順で話してください。\n\n"
-        f"タイトル: {e.title}\n本文:\n{body}"
-    )
-    script = client.models.generate_content(model="gemini-3.8-flash", contents=prompt).text
+        prompt = (
+            "次の記事を、通勤中に耳で聞いて理解できる日本語の解説原稿にしてください。"
+            "読み上げて約5分（1500字前後）。見出しや記号は使わず、話し言葉で。"
+            "最初に記事のタイトルを紹介し、要点、背景、放送業界にとっての意味の順で話してください。\n\n"
+            f"タイトル: {e.title}\n本文:\n{text}"
+        )
+        r = ask(TEXT_MODELS, prompt)
+        if not r or not r.text:
+            print("原稿を作れずスキップ:", e.title)
+            continue
 
-    res = client.models.generate_content(
-        model="gemini-3.1-flash-tts",
-        contents=script,
-        config=types.GenerateContentConfig(
+        cfg = types.GenerateContentConfig(
             response_modalities=["AUDIO"],
             speech_config=types.SpeechConfig(
                 voice_config=types.VoiceConfig(
                     prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name="Kore")
                 )
             ),
-        ),
-    )
-    pcm = res.candidates[0].content.parts[0].inline_data.data
+        )
+        res = ask(TTS_MODELS, r.text, cfg)
+        if not res:
+            print("音声を作れずスキップ:", e.title)
+            continue
+        pcm = res.candidates[0].content.parts[0].inline_data.data
 
-    name = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + f"_{i}"
-    wav = f"/tmp/{name}.wav"
-    with wave.open(wav, "wb") as w:
-        w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000); w.writeframes(pcm)
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-b:a", "64k",
-                    str(audio_dir / f"{name}.mp3")], check=True)
+        name = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + f"_{i}"
+        wav = audio_dir / f"{name}.wav"
+        with wave.open(str(wav), "wb") as w:
+            w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000); w.writeframes(pcm)
+        file = f"audio/{name}.wav"
+        if shutil.which("ffmpeg"):
+            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(wav), "-b:a", "64k",
+                            str(audio_dir / f"{name}.mp3")], check=True)
+            wav.unlink()
+            file = f"audio/{name}.mp3"
 
-    eps.insert(0, {"title": e.title, "link": e.link, "file": f"audio/{name}.mp3",
-                   "date": datetime.date.today().isoformat()})
+        eps.insert(0, {"title": e.title, "link": e.link, "file": file,
+                       "date": datetime.date.today().isoformat()})
+        db_path.write_text(json.dumps(eps, ensure_ascii=False, indent=1), encoding="utf-8")
+        print("完成:", e.title)
+    except Exception as ex:
+        print("スキップ:", e.link, ex)
 
-db_path.write_text(json.dumps(eps, ensure_ascii=False, indent=1), encoding="utf-8")
-
-items = "\n".join(
-    f''
-    for x in eps
-)
-(root / "index.html").write_text(f"""<!doctype html>""", encoding="utf-8")
+build_page()
