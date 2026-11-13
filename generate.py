@@ -1,4 +1,4 @@
-import os, re, json, html, wave, time, shutil, subprocess, datetime, pathlib
+import os, re, json, html, time, base64, shutil, subprocess, datetime, pathlib
 import requests, feedparser
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
@@ -7,8 +7,9 @@ from google.genai import types
 
 SITE = "https://minpo.online/"
 MAX_NEW = 3  # 1回に音声化する最大本数
-TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"]
-TTS_MODELS = ["gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts", "gemini-3.1-flash-tts"]
+TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
+TTS_MODELS = ["gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts"]
+VOICE = "Kore"
 UA = {"User-Agent": "Mozilla/5.0"}
 
 try:
@@ -25,13 +26,42 @@ eps = json.loads(db_path.read_text(encoding="utf-8")) if db_path.exists() else [
 done = {e["link"] for e in eps}
 
 
-def ask(models, contents, config=None):
+def write_script(prompt):
     for _ in range(3):
-        for m in models:
+        for m in TEXT_MODELS:
             try:
-                return client.models.generate_content(model=m, contents=contents, config=config)
+                r = client.models.generate_content(model=m, contents=prompt)
+                if r.text:
+                    return r.text
             except Exception as ex:
-                print(f"{m} 失敗: {str(ex)[:150]}")
+                print(f"{m} 失敗: {str(ex)[:300]}")
+        time.sleep(60)
+    return None
+
+
+def speak(script):
+    for _ in range(3):
+        for m in TTS_MODELS:
+            try:
+                it = client.interactions.create(
+                    model=m,
+                    input=[{
+                        "type": "user_input",
+                        "content": [{
+                            "type": "text",
+                            "text": script,
+                            "annotations": [{
+                                "type": "speech_metadata",
+                                "style": "calm and clear, like a radio news commentator",
+                            }],
+                        }],
+                    }],
+                    response_format={"type": "audio", "mime_type": "audio/wav"},
+                    generation_config={"speech_config": [{"voice": VOICE}]},
+                )
+                return base64.b64decode(it.output_audio.data)
+            except Exception as ex:
+                print(f"{m} 失敗: {str(ex)[:300]}")
         time.sleep(60)
     return None
 
@@ -87,32 +117,23 @@ for i, e in enumerate(reversed(new)):
         prompt = (
             "次の記事を、通勤中に耳で聞いて理解できる日本語の解説原稿にしてください。"
             "読み上げて約5分（1500字前後）。見出しや記号は使わず、話し言葉で。"
-            "最初に記事のタイトルを紹介し、要点、背景、放送業界にとっての意味の順で話してください。\n\n"
+            "最初に記事のタイトルを紹介し、要点、背景、放送業界にとっての意味の順で話してください。"
+            "原稿の本文だけを出力してください。\n\n"
             f"タイトル: {e.title}\n本文:\n{text}"
         )
-        r = ask(TEXT_MODELS, prompt)
-        if not r or not r.text:
+        script = write_script(prompt)
+        if not script:
             print("原稿を作れずスキップ:", e.title)
             continue
 
-        cfg = types.GenerateContentConfig(
-            response_modalities=["AUDIO"],
-            speech_config=types.SpeechConfig(
-                voice_config=types.VoiceConfig(
-                    prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name="Kore")
-                )
-            ),
-        )
-        res = ask(TTS_MODELS, r.text, cfg)
-        if not res:
+        audio = speak(script)
+        if not audio:
             print("音声を作れずスキップ:", e.title)
             continue
-        pcm = res.candidates[0].content.parts[0].inline_data.data
 
         name = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + f"_{i}"
         wav = audio_dir / f"{name}.wav"
-        with wave.open(str(wav), "wb") as w:
-            w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000); w.writeframes(pcm)
+        wav.write_bytes(audio)
         file = f"audio/{name}.wav"
         if shutil.which("ffmpeg"):
             subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(wav), "-b:a", "64k",
