@@ -1,4 +1,4 @@
-import os, re, json, html, time, base64, shutil, subprocess, datetime, pathlib
+import os, re, json, html, time, wave, base64, shutil, subprocess, datetime, pathlib
 import requests, feedparser
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
@@ -8,9 +8,10 @@ from google.genai import types
 SITE = "https://minpo.online/"
 MAX_NEW = 3  # 1回に音声化する最大本数
 TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
-TTS_MODELS = ["gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts"]
+TTS_MODELS = ["gemini-3.8-flash-lite-tts", "gemini-3.1-flash-tts-preview", "gemini-3.8-flash-tts"]
 VOICE = "Kore"
 UA = {"User-Agent": "Mozilla/5.0"}
+dead = set()  # 使えなかったモデル
 
 try:
     opts = types.HttpOptions(timeout=180000, retry_options=types.HttpRetryOptions(attempts=2))
@@ -26,15 +27,26 @@ eps = json.loads(db_path.read_text(encoding="utf-8")) if db_path.exists() else [
 done = {e["link"] for e in eps}
 
 
+def note_fail(m, ex):
+    msg = str(ex)
+    print(f"{m} 失敗: {msg[:300]}")
+    if "404" in msg or "not found" in msg.lower():
+        dead.add(m)
+
+
 def write_script(prompt):
     for _ in range(3):
         for m in TEXT_MODELS:
+            if m in dead:
+                continue
             try:
                 r = client.models.generate_content(model=m, contents=prompt)
                 if r.text:
                     return r.text
             except Exception as ex:
-                print(f"{m} 失敗: {str(ex)[:300]}")
+                note_fail(m, ex)
+        if all(m in dead for m in TEXT_MODELS):
+            return None
         time.sleep(60)
     return None
 
@@ -42,26 +54,21 @@ def write_script(prompt):
 def speak(script):
     for _ in range(3):
         for m in TTS_MODELS:
+            if m in dead:
+                continue
             try:
                 it = client.interactions.create(
                     model=m,
-                    input=[{
-                        "type": "user_input",
-                        "content": [{
-                            "type": "text",
-                            "text": script,
-                            "annotations": [{
-                                "type": "speech_metadata",
-                                "style": "calm and clear, like a radio news commentator",
-                            }],
-                        }],
-                    }],
-                    response_format={"type": "audio", "mime_type": "audio/wav"},
+                    input=[{"type": "user_input", "content": [{"type": "text", "text": script}]}],
+                    response_format={"type": "audio", "mime_type": "audio/l16", "sample_rate": 24000},
                     generation_config={"speech_config": [{"voice": VOICE}]},
                 )
+                print("読み上げに使ったモデル:", m)
                 return base64.b64decode(it.output_audio.data)
             except Exception as ex:
-                print(f"{m} 失敗: {str(ex)[:300]}")
+                note_fail(m, ex)
+        if all(m in dead for m in TTS_MODELS):
+            return None
         time.sleep(60)
     return None
 
@@ -133,7 +140,11 @@ for i, e in enumerate(reversed(new)):
 
         name = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + f"_{i}"
         wav = audio_dir / f"{name}.wav"
-        wav.write_bytes(audio)
+        if audio[:4] == b"RIFF":
+            wav.write_bytes(audio)
+        else:
+            with wave.open(str(wav), "wb") as w:
+                w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000); w.writeframes(audio)
         file = f"audio/{name}.wav"
         if shutil.which("ffmpeg"):
             subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(wav), "-b:a", "64k",
