@@ -65,13 +65,31 @@ def find_feed():
 
 
 def build_page():
-    cards = [
-        f''
-        for x in eps
-    ]
-    body = "\n".join(cards) or " まだ音声はありません。 "
-    (root / "index.html").write_text(f"""<!doctype html>
-""", encoding="utf-8")
+    cards = []
+    for x in eps:
+        cards.append(
+            f'<li><p class="d">{x["date"]}</p><h2>{html.escape(x["title"])}</h2>'
+            f'<audio controls preload="none" src="{x["file"]}"></audio>'
+            f'<a href="{html.escape(x["link"])}" target="_blank">元の記事を読む</a></li>'
+        )
+    body = "\n".join(cards) or "<p>まだ音声はありません。</p>"
+    page = f"""<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>音声ニュース</title>
+<style>
+body{{font-family:-apple-system,sans-serif;margin:0;padding:16px;background:#f6f6f4;color:#222}}
+@media (prefers-color-scheme:dark){{body{{background:#111;color:#eee}}li{{background:#1c1c1c!important}}}}
+h1{{font-size:22px}} ul{{list-style:none;padding:0}}
+li{{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px}}
+h2{{font-size:17px;margin:4px 0 10px}} .d{{font-size:13px;opacity:.6;margin:0}}
+audio{{width:100%}} a{{display:inline-block;margin-top:8px;font-size:14px;color:#3a7bd5}}
+</style></head><body>
+<h1>新着の音声解説</h1><ul>
+{body}
+</ul></body></html>"""
+    (root / "index.html").write_text(page, encoding="utf-8")
 
 
 feed = feedparser.parse(requests.get(find_feed(), headers=UA, timeout=30).content)
