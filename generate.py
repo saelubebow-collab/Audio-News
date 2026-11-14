@@ -1,4 +1,4 @@
-import os, re, sys, json, html, time, asyncio, subprocess, datetime, pathlib
+import os, re, sys, json, time, asyncio, subprocess, datetime, pathlib
 try:
     import edge_tts
 except ImportError:
@@ -9,9 +9,13 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from google import genai
 
-SITE = "https://minpo.online/"
-REPO = "saelubebow-collab/Audio-News"
-MAX_NEW = 4
+# 読みたいサイトの一覧（増やすときはここに1行足す）
+SITES = [
+    ("民放online", "https://minpo.online/"),
+    ("POTLUCK YAESU", "https://www.potluck-yaesu.com/"),
+]
+MAX_PER_SITE = 2   # 1サイトあたり1回に作る最大本数
+MAX_TOTAL = 4      # 全体で1回に作る最大本数
 TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
 VOICE = "ja-JP-NanamiNeural"
 UA = {"User-Agent": "Mozilla/5.0"}
@@ -79,117 +83,72 @@ def speak(script, path):
     return False
 
 
-def find_feed():
-    s = BeautifulSoup(requests.get(SITE, headers=UA, timeout=30).text, "html.parser")
-    for l in s.find_all("link", type=re.compile("rss|atom")):
-        return urljoin(SITE, l["href"])
-    for a in s.find_all("a"):
-        if a.get_text(strip=True).upper() == "RSS":
-            return urljoin(SITE, a["href"])
-    raise SystemExit("RSSが見つかりませんでした")
+def find_feed(url):
+    cands = []
+    try:
+        s = BeautifulSoup(requests.get(url, headers=UA, timeout=30).text, "html.parser")
+        for l in s.find_all("link", type=re.compile("rss|atom")):
+            cands.append(urljoin(url, l["href"]))
+        for a in s.find_all("a"):
+            if a.get_text(strip=True).upper() == "RSS" and a.get("href"):
+                cands.append(urljoin(url, a["href"]))
+    except Exception as ex:
+        print("サイトを開けません:", url, ex)
+    cands += [urljoin(url, "feed/"), urljoin(url, "rss"), urljoin(url, "feed")]
+    for c in cands:
+        try:
+            f = feedparser.parse(requests.get(c, headers=UA, timeout=30).content)
+            if f.entries:
+                print("RSS:", c)
+                return f
+        except Exception:
+            pass
+    print("RSSが見つかりませんでした:", url)
+    return None
 
 
-PAGE = """<!doctype html>
-<html lang="ja"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex">
-<title>音声ニュース</title>
-<style>
-body{font-family:-apple-system,sans-serif;margin:0;padding:16px;background:#111;color:#eee}
-h1{font-size:22px} ul{list-style:none;padding:0}
-li{background:#1c1c1c;border-radius:12px;padding:14px;margin-bottom:12px}
-h2{font-size:17px;margin:4px 0 10px} .d{font-size:13px;opacity:.6;margin:0}
-audio{width:100%} .row{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
-a{font-size:14px;color:#6ea8fe}
-button{background:#2e7d32;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-size:14px}
-</style></head><body>
-<h1>新着の音声解説</h1><ul>
-__BODY__
-</ul>
-<script>
-const REPO = "__REPO__";
-const heardList = () => JSON.parse(localStorage.getItem("heard") || "[]");
-document.querySelectorAll("li[data-id]").forEach(li => {
-  if (heardList().includes(li.dataset.id)) li.remove();
-});
-async function heard(btn) {
-  const li = btn.closest("li");
-  const id = li.dataset.id;
-  let t = localStorage.getItem("ghtoken");
-  if (!t) {
-    t = prompt("GitHubの合言葉（トークン）を貼り付けてください");
-    if (!t) return;
-    t = t.trim();
-    localStorage.setItem("ghtoken", t);
-  }
-  btn.disabled = true;
-  btn.textContent = "消しています…";
-  const r = await fetch("https://api.github.com/repos/" + REPO + "/contents/listened/" + id, {
-    method: "PUT",
-    headers: {"Authorization": "Bearer " + t, "Accept": "application/vnd.github+json"},
-    body: JSON.stringify({message: "listened " + id, content: btoa("1")})
-  });
-  if (r.ok || r.status === 422) {
-    const h = heardList(); h.push(id);
-    localStorage.setItem("heard", JSON.stringify(h));
-    li.remove();
-  } else {
-    alert("消せませんでした（" + r.status + "）。もう一度押して合言葉を入れ直してください");
-    localStorage.removeItem("ghtoken");
-    btn.disabled = false;
-    btn.textContent = "聞いた";
-  }
-}
-</script>
-</body></html>"""
+def clean_title(t):
+    return re.sub(r"\s[-–|｜]\s[^-–|｜]+$", "", t).strip()
 
 
-def build_page():
-    cards = []
-    for x in eps:
-        sid = pathlib.Path(x["file"]).stem
-        cards.append(
-            f'<li data-id="{sid}"><p class="d">{x["date"]}</p><h2>{html.escape(x["title"])}</h2>'
-            f'<audio controls preload="none" src="{x["file"]}"></audio>'
-            f'<div class="row"><a href="{html.escape(x["link"])}" target="_blank">元の記事を読む</a>'
-            f'<button onclick="heard(this)">聞いた</button></div></li>'
-        )
-    body = "\n".join(cards) or "<p>まだ音声はありません。</p>"
-    (root / "index.html").write_text(PAGE.replace("__BODY__", body).replace("__REPO__", REPO), encoding="utf-8")
+todo = []
+for name, url in SITES:
+    feed = find_feed(url)
+    if not feed:
+        continue
+    new = [e for e in feed.entries if e.get("link") and e.link not in seen][:MAX_PER_SITE]
+    todo += [(name, e) for e in new]
+todo = todo[:MAX_TOTAL]
 
-
-feed = feedparser.parse(requests.get(find_feed(), headers=UA, timeout=30).content)
-new = [e for e in feed.entries if e.link not in seen][:MAX_NEW]
-
-for i, e in enumerate(reversed(new)):
+for i, (name, e) in enumerate(reversed(todo)):
     try:
         page = BeautifulSoup(requests.get(e.link, headers=UA, timeout=30).text, "html.parser")
         for t in page(["script", "style", "nav", "header", "footer"]):
             t.decompose()
-        text = (page.find("article") or page.body).get_text("\n", strip=True)[:20000]
+        text = (page.find("article") or page.find("main") or page.body).get_text("\n", strip=True)[:20000]
+        title = clean_title(e.title)
         prompt = (
             "次の記事を、通勤中に耳で聞いて理解できる日本語の解説原稿にしてください。"
             "読み上げて約5分（1500字前後）。見出しや記号は使わず、話し言葉で。"
-            "最初に記事のタイトルを紹介し、要点、背景、放送業界にとっての意味の順で話してください。"
+            "最初に記事のタイトルを紹介し、要点、背景、地方の放送局やビジネスにとってのヒントの順で話してください。"
             "原稿の本文だけを出力してください。\n\n"
-            f"タイトル: {e.title}\n本文:\n{text}"
+            f"サイト: {name}\nタイトル: {title}\n本文:\n{text}"
         )
         script = write_script(prompt)
         if not script:
-            print("原稿を作れずスキップ:", e.title)
+            print("原稿を作れずスキップ:", title)
             continue
-        name = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + f"_{i}"
-        mp3 = audio_dir / f"{name}.mp3"
+        fname = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + f"_{i}"
+        mp3 = audio_dir / f"{fname}.mp3"
         if not speak(script, mp3):
-            print("音声を作れずスキップ:", e.title)
+            print("音声を作れずスキップ:", title)
             continue
-        eps.insert(0, {"title": e.title, "link": e.link, "file": f"audio/{name}.mp3",
-                       "date": datetime.date.today().isoformat()})
+        eps.insert(0, {"title": f"{title} - {name}", "site": name, "link": e.link,
+                       "file": f"audio/{fname}.mp3", "date": datetime.date.today().isoformat()})
         seen.add(e.link)
         save()
-        print("完成:", e.title)
+        print("完成:", name, title)
     except Exception as ex:
         print("スキップ:", e.link, ex)
 
 save()
-build_page()
