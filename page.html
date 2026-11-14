@@ -61,6 +61,12 @@ h1{font-size:30px;font-weight:900;letter-spacing:.02em;margin-top:8px;line-heigh
 .big:after{content:"";position:absolute;left:17px;top:13px;border-left:13px solid #fff;border-top:9px solid transparent;border-bottom:9px solid transparent}
 .big.on:after,.big.on:before{content:"";position:absolute;top:14px;width:4px;height:16px;background:#fff;border:0;border-radius:2px}
 .big.on:before{left:15px}.big.on:after{left:24px}
+.player{transition:transform .25s}
+.player.hide{transform:translateY(110%)}
+.x{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--line);color:var(--sub);font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.item.pz .ic{background:none;border-color:var(--text)}
+.item.pz .ic:before{display:none}
+.item.pz .ic:after{left:10px;top:7.5px;width:0;height:0;background:none;border-radius:0;border-left:9px solid var(--text);border-top:6px solid transparent;border-bottom:6px solid transparent}
 .toast{position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom));background:#f2f3f5;color:#0b0d10;border-radius:12px;padding:12px 16px;font-size:13px;display:flex;justify-content:space-between;align-items:center;transform:translateY(20px);opacity:0;pointer-events:none;transition:.2s}
 .toast.show{transform:none;opacity:1;pointer-events:auto}
 .toast button{color:var(--accent);font-weight:700}
@@ -79,11 +85,12 @@ h1{font-size:30px;font-weight:900;letter-spacing:.02em;margin-top:8px;line-heigh
 <div class="section"><h2>未聴の解説</h2><span>LATEST</span></div>
 <div id="list"></div>
 
-<div class="player">
+<div class="player hide" id="player">
   <div class="bar"><i id="prog"></i></div>
   <div class="mini" id="pMini"></div>
   <div class="info"><b id="pTitle">聞きたい解説をタップ</b><span id="pSub">一覧の ▶ から再生できます</span></div>
   <button class="big" id="pBtn" aria-label="再生"></button>
+  <button class="x" id="pClose" aria-label="再生を終了">✕</button>
 </div>
 <div class="toast" id="toast"><span id="tMsg"></span><button id="tUndo">元に戻す</button></div>
 <audio id="au" preload="none"></audio>
@@ -139,6 +146,7 @@ function render(){
         </div>
       </div></div>`;
   }).join("");
+  syncPlayer();
 }
 
 function find(s){ return eps.find(x => sid(x) === s); }
@@ -148,14 +156,22 @@ function play(s){
   cur = s; au.src = x.file; au.play().catch(()=>{});
   $("pTitle").textContent = clean(x.title);
   $("pMini").style.background = grad(site(x));
+  $("player").classList.remove("hide");
   render();
 }
 function next(){
   const all = visible(); const i = all.findIndex(x => sid(x) === cur);
-  if (i >= 0 && i + 1 < all.length) play(sid(all[i + 1])); else { cur = null; render(); }
+  if (i >= 0 && i + 1 < all.length) play(sid(all[i + 1])); else close();
 }
+function close(){
+  au.pause(); au.removeAttribute("src"); au.load();
+  cur = null; $("player").classList.add("hide"); $("prog").style.width = "0"; render();
+}
+$("pClose").onclick = close;
 function syncPlayer(){
   $("pBtn").classList.toggle("on", !au.paused);
+  const it = cur && document.querySelector(`.item[data-sid="${cur}"]`);
+  if (it) it.classList.toggle("pz", au.paused);
   const x = cur && find(cur);
   if (x) $("pSub").textContent = site(x) + " ・ " + mmss(au.currentTime).replace("約5分","0:00") + " / " + mmss(au.duration);
   $("prog").style.width = au.duration ? (au.currentTime / au.duration * 100) + "%" : "0";
@@ -197,7 +213,7 @@ function flush(){ if (pending){ clearTimeout(pending.t); send(pending.s); pendin
 function done(s){
   if (!token()) return;
   flush();
-  if (cur === s){ au.pause(); cur = null; }
+  if (cur === s) close();
   const el = document.querySelector(`.item[data-sid="${s}"]`);
   if (el) el.classList.add("gone");
   setTimeout(() => { hidden.add(s); store("hidden", [...hidden]); render(); }, 250);
