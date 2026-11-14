@@ -1,4 +1,5 @@
 import os, re, sys, json, time, asyncio, subprocess, datetime, pathlib
+from types import SimpleNamespace
 try:
     import edge_tts
 except ImportError:
@@ -10,9 +11,10 @@ from bs4 import BeautifulSoup
 from google import genai
 
 # 読みたいサイトの一覧（増やすときはここに1行足す）
+# 3つ目は「RSSがないサイト」用の、記事URLの形。RSSがあるサイトは "" のままでOK
 SITES = [
-    ("民放online", "https://minpo.online/"),
-    ("POTLUCK YAESU", "https://www.potluck-yaesu.com/"),
+    ("民放online", "https://minpo.online/", ""),
+    ("POTLUCK YAESU", "https://www.potluck-yaesu.com/", r"/magazine/\d{8}/\d+/"),
 ]
 MAX_PER_SITE = 2   # 1サイトあたり1回に作る最大本数
 MAX_TOTAL = 4      # 全体で1回に作る最大本数
@@ -83,7 +85,24 @@ def speak(script, path):
     return False
 
 
-def find_feed(url):
+def from_page(url, pattern):
+    """RSSがないサイト：トップページから記事のリンクを集める"""
+    items, got = [], set()
+    try:
+        s = BeautifulSoup(requests.get(url, headers=UA, timeout=30).text, "html.parser")
+    except Exception as ex:
+        print("サイトを開けません:", url, ex)
+        return items
+    for a in s.find_all("a", href=True):
+        h = urljoin(url, a["href"]).split("#")[0]
+        if re.search(pattern, h) and h not in got:
+            got.add(h)
+            items.append(SimpleNamespace(link=h, title=a.get_text(" ", strip=True)))
+    print(f"記事リンク {len(items)}件:", url)
+    return items
+
+
+def from_feed(url):
     cands = []
     try:
         s = BeautifulSoup(requests.get(url, headers=UA, timeout=30).text, "html.parser")
@@ -100,33 +119,32 @@ def find_feed(url):
             f = feedparser.parse(requests.get(c, headers=UA, timeout=30).content)
             if f.entries:
                 print("RSS:", c)
-                return f
+                return [e for e in f.entries if e.get("link")]
         except Exception:
             pass
     print("RSSが見つかりませんでした:", url)
-    return None
+    return []
 
 
 def clean_title(t):
-    return re.sub(r"\s[-–|｜]\s[^-–|｜]+$", "", t).strip()
+    return re.sub(r"(?:\s[-–]\s|\s*[|｜]\s*)[^-–|｜]+$", "", t or "").strip()
 
 
 todo = []
-for name, url in SITES:
-    feed = find_feed(url)
-    if not feed:
-        continue
-    new = [e for e in feed.entries if e.get("link") and e.link not in seen][:MAX_PER_SITE]
+for name, url, pattern in SITES:
+    items = from_page(url, pattern) if pattern else from_feed(url)
+    new = [e for e in items if e.link not in seen][:MAX_PER_SITE]
     todo += [(name, e) for e in new]
 todo = todo[:MAX_TOTAL]
 
 for i, (name, e) in enumerate(reversed(todo)):
     try:
         page = BeautifulSoup(requests.get(e.link, headers=UA, timeout=30).text, "html.parser")
+        og = page.find("meta", property="og:title")
+        title = clean_title(og["content"] if og and og.get("content") else e.title)
         for t in page(["script", "style", "nav", "header", "footer"]):
             t.decompose()
         text = (page.find("article") or page.find("main") or page.body).get_text("\n", strip=True)[:20000]
-        title = clean_title(e.title)
         prompt = (
             "次の記事を、通勤中に耳で聞いて理解できる日本語の解説原稿にしてください。"
             "読み上げて約5分（1500字前後）。見出しや記号は使わず、話し言葉で。"
