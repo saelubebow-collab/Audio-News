@@ -37,7 +37,7 @@ dead = set()
 def broken(t):
     """文字化けしたタイトルかどうか"""
     try:
-        return t.encode("latin-1").decode("utf-8") != t
+                return bool(re.search("[\u00e0-\u00ef][\u0080-\u00bf]{2}", t))
     except Exception:
         return False
 
