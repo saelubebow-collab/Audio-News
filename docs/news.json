@@ -1,0 +1,20 @@
+[
+ {
+  "title": "朝のニュースまとめ",
+  "site": "朝日新聞",
+  "group": "paper",
+  "count": 8,
+  "link": "https://www.asahi.com/",
+  "file": "audio/news_20261114195010_1.mp3",
+  "date": "2026-11-14"
+ },
+ {
+  "title": "朝のニュースまとめ",
+  "site": "産経新聞",
+  "group": "paper",
+  "count": 8,
+  "link": "https://www.sankei.com/",
+  "file": "audio/news_20261114195010_3.mp3",
+  "date": "2026-11-14"
+ }
+]
