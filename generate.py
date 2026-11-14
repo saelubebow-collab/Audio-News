@@ -33,6 +33,24 @@ seen = set(json.loads(seen_path.read_text(encoding="utf-8"))) if seen_path.exist
 seen |= {e["link"] for e in eps}
 dead = set()
 
+
+def broken(t):
+    """文字化けしたタイトルかどうか"""
+    try:
+        return t.encode("latin-1").decode("utf-8") != t
+    except Exception:
+        return False
+
+
+# 文字化けしてしまった解説は消して、作り直す
+for x in [x for x in eps if broken(x["title"])]:
+    f = root / x["file"]
+    if f.exists():
+        f.unlink()
+    seen.discard(x["link"])
+    print("文字化けを作り直し:", x["link"])
+eps = [x for x in eps if not broken(x["title"])]
+
 listened = pathlib.Path("listened")
 if listened.exists():
     gone = {p.name for p in listened.iterdir() if p.is_file()}
@@ -89,7 +107,7 @@ def from_page(url, pattern):
     """RSSがないサイト：トップページから記事のリンクを集める"""
     items, got = [], set()
     try:
-        s = BeautifulSoup(requests.get(url, headers=UA, timeout=30).text, "html.parser")
+        s = BeautifulSoup(requests.get(url, headers=UA, timeout=30).content, "html.parser")
     except Exception as ex:
         print("サイトを開けません:", url, ex)
         return items
@@ -105,7 +123,7 @@ def from_page(url, pattern):
 def from_feed(url):
     cands = []
     try:
-        s = BeautifulSoup(requests.get(url, headers=UA, timeout=30).text, "html.parser")
+        s = BeautifulSoup(requests.get(url, headers=UA, timeout=30).content, "html.parser")
         for l in s.find_all("link", type=re.compile("rss|atom")):
             cands.append(urljoin(url, l["href"]))
         for a in s.find_all("a"):
@@ -139,7 +157,7 @@ todo = todo[:MAX_TOTAL]
 
 for i, (name, e) in enumerate(reversed(todo)):
     try:
-        page = BeautifulSoup(requests.get(e.link, headers=UA, timeout=30).text, "html.parser")
+        page = BeautifulSoup(requests.get(e.link, headers=UA, timeout=30).content, "html.parser")
         og = page.find("meta", property="og:title")
         title = clean_title(og["content"] if og and og.get("content") else e.title)
         for t in page(["script", "style", "nav", "header", "footer"]):
