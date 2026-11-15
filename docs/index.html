@@ -101,10 +101,12 @@ const REPO = "saelubebow-collab/Audio-News";
 // 上の切り替えボタン（増やすときはここに足す）
 const VIEWS = [
   { id: "audio", label: "音声解説", src: "episodes.json", color: "#3b8cff", eyebrow: "MORNING AUDIO BRIEF", h1: "今日の<br>音声解説", remote: true },
-  { id: "paper", label: "全国紙", src: "news.json", group: "paper", color: "#f5a524", eyebrow: "MORNING PAPER BRIEF", h1: "今朝の<br>全国紙", unit: "紙" },
+  { id: "paper", label: "全国紙", src: "news.json", group: "paper", color: "#f5a524", eyebrow: "DAILY PAPER BRIEF", h1: "今日の<br>全国紙" },
+  { id: "local", label: "地元紙", src: "news.json", group: "local", color: "#2fbf8f", eyebrow: "LOCAL PAPER BRIEF", h1: "今日の<br>地元紙" },
 ];
 const PAL = [["#1d4fd8","#3b8cff"],["#0f766e","#34d399"],["#7c2d92","#e879f9"],["#b45309","#fbbf24"],["#be123c","#fb7185"],["#334155","#94a3b8"]];
-const MAST = {"読売新聞":"#1c2a44","朝日新聞":"#3a1d1d","毎日新聞":"#1d3326","産経新聞":"#2e2640"};
+const MAST = {"読売新聞":"#1c2a44","朝日新聞":"#3a1d1d","毎日新聞":"#1d3326","産経新聞":"#2e2640","北日本新聞":"#13343a","北國新聞":"#3a2a14","新潟日報":"#14303f"};
+const SHORT = {"北日本新聞":"北日本","北國新聞":"北國","新潟日報":"新潟"};
 const $ = id => document.getElementById(id);
 const au = $("au");
 const data = {};
@@ -123,7 +125,7 @@ const clean = t => t.replace(/\s[-–|｜]\s[^-–|｜]+$/, "").trim();
 const FIX = {"民放online":0};
 function colors(name){ if (name in FIX) return PAL[FIX[name]]; let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PAL[h % PAL.length]; }
 const grad = n => MAST[n] || (c => `linear-gradient(140deg,${c[0]},${c[1]})`)(colors(n));
-const short = n => n.replace(/新聞$/, "").slice(0, 2);
+const short = n => SHORT[n] || n.replace(/新聞$/, "").slice(0, 2);
 const mmss = s => isFinite(s) && s > 0 ? Math.floor(s/60) + ":" + String(Math.floor(s%60)).padStart(2,"0") : "約5分";
 const md = d => { const p = d.split("-"); return p.length === 3 ? (+p[1]) + "/" + (+p[2]) : d; };
 function todayStr(){ const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
@@ -147,19 +149,19 @@ function render(){
       <div class="tabs">${sites.map(s => `<button class="tab${s===tab?" on":""}" data-tab="${esc(s)}">${esc(s)}</button>`).join("")}</div>
       <div class="section"><h2>未聴の解説</h2><span>LATEST</span></div>`;
   } else {
-    $("lead").textContent = today() + (all.length ? ` ・ ${all.length}${v.unit} ・ 各5分で約${mins}分` : "");
-    $("top").innerHTML = (all.length ? `<button class="all" data-all="1">▶ ${all.length}${v.unit}を続けて聞く</button>` : "")
-      + `<div class="section"><h2>今朝の${v.label}</h2><span>TODAY</span></div>`;
+    $("lead").textContent = today() + (all.length ? ` ・ ${all.length}本 ・ 各5分で約${mins}分` : "");
+    $("top").innerHTML = (all.length ? `<button class="all" data-all="1">▶ ${all.length}本を続けて聞く</button>` : "")
+      + `<div class="section"><h2>今日の${v.label}</h2><span>TODAY</span></div>`;
   }
   if (!list.length){
     $("list").innerHTML = data[view] === undefined ? `<div class="empty">読み込み中…</div>`
-      : `<div class="empty">${v.remote ? "未聴の解説はありません。<br>新しい記事が出たら、毎朝ここに届きます。" : "まだ今朝のまとめはありません。<br>毎朝5時半ごろに届きます。"}</div>`;
+      : `<div class="empty">${v.remote ? "未聴の解説はありません。<br>新しい記事が出たら、毎朝ここに届きます。" : "まだ今日のまとめはありません。<br>毎日5時と16時ごろに届きます。"}</div>`;
   } else {
     $("list").innerHTML = list.map(x => {
       const s = sid(x), n = site(x);
       const thumb = v.remote
         ? `<div class="thumb" style="background:${grad(n)}"><small>${esc(host(x).split(".")[0].toUpperCase())}</small><strong>${esc(n)}</strong></div>`
-        : `<div class="thumb mast" style="background:${grad(n)}">${esc(short(n))}</div>`;
+        : `<div class="thumb mast" style="background:${grad(n)}${short(n).length > 2 ? ";font-size:16px;letter-spacing:0" : ""}">${esc(short(n))}</div>`;
       const sub = v.remote ? "" : `<div class="note">${x.count ? `主なニュース ${x.count}本から` : ""}</div>`;
       return `<div class="item${s===cur?" playing":""}" data-sid="${s}">
         ${x.date === t ? '<span class="new"></span>' : ""}${thumb}
@@ -184,6 +186,7 @@ function play(s){
   const n = site(x), v = V(w);
   $("pTitle").textContent = v.remote ? clean(x.title) : `${n}　${clean(x.title)}`;
   $("pMini").style.background = grad(n); $("pMini").textContent = v.remote ? "" : short(n);
+  $("pMini").style.fontSize = short(n).length > 2 ? "10px" : "";
   $("player").style.setProperty("--pc", v.color);
   $("player").classList.remove("hide");
   render();
