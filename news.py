@@ -169,8 +169,16 @@ def write_script(prompt):
         time.sleep(60)
     return None
 
+READING = {
+    "北日本新聞": "きたにっぽん新聞",
+    "北日本放送": "きたにほん放送",
+    "北國新聞": "ほっこく新聞",
+}
+
 
 def speak(script, path):
+    for k, v in READING.items():
+        script = script.replace(k, v)
     for _ in range(3):
         try:
             asyncio.run(edge_tts.Communicate(script, VOICE).save(str(path)))
@@ -180,7 +188,6 @@ def speak(script, path):
             print("読み上げ失敗:", str(ex)[:300])
         time.sleep(30)
     return False
-
 
 def make(n, name, group, link, cands):
     """新聞1紙分のまとめ音声を作る"""
