@@ -26,6 +26,12 @@ LOCALS = [
     ("北國新聞", "hokkoku"),
     ("新潟日報", "niigatan"),
 ]
+# 経済メディア（RSSから拾う。RSSが読めなければGoogleニュースの見出し）
+BIZ = [
+    ("東洋経済", "https://toyokeizai.net/", "https://toyokeizai.net/list/feed/rss"),
+    ("PRESIDENT Online", "https://president.jp/", "https://president.jp/list/rss"),
+    ("時事通信", "https://www.jiji.com/", ""),
+]
 NEWS_PER_PAPER = 7     # 1つの新聞から拾うニュースの数
 TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
 VOICE = "ja-JP-NanamiNeural"
@@ -55,7 +61,7 @@ def save():
 
 
 def broken(t):
-    return bool(re.search("[\u00e0-\u00ef][\u0080-\u00bf]{2}", t or ""))
+    return bool(re.search("[à-ï][\u0080-¿]{2}", t or ""))
 
 
 def clean_title(t):
@@ -117,10 +123,13 @@ def rss_items(feed):
     out = []
     try:
         x = ET.fromstring(requests.get(feed, headers=UA, timeout=30).content)
-        for it in x.iter("item"):
-            desc = BeautifulSoup(it.findtext("description") or "", "html.parser").get_text(" ", strip=True)
-            out.append(SimpleNamespace(title=clean_title(it.findtext("title")),
-                                       link=(it.findtext("link") or "").strip(), desc=desc))
+        for it in x.iter():
+            if not isinstance(it.tag, str) or it.tag.split("}")[-1] != "item":
+                continue
+            f = {c.tag.split("}")[-1]: (c.text or "") for c in it}
+            desc = BeautifulSoup(f.get("description", ""), "html.parser").get_text(" ", strip=True)
+            out.append(SimpleNamespace(title=clean_title(f.get("title")),
+                                       link=f.get("link", "").strip(), desc=desc))
     except Exception as ex:
         print("RSSを読めません:", feed, ex)
     return [e for e in out if e.title and not broken(e.title)]
@@ -169,6 +178,7 @@ def write_script(prompt):
         time.sleep(60)
     return None
 
+
 READING = {
     "北日本新聞": "きたにっぽん新聞",
     "北日本放送": "きたにほん放送",
@@ -188,6 +198,7 @@ def speak(script, path):
             print("読み上げ失敗:", str(ex)[:300])
         time.sleep(30)
     return False
+
 
 def make(n, name, group, link, cands):
     """新聞1紙分のまとめ音声を作る"""
@@ -259,6 +270,16 @@ for n, (name, mid) in enumerate(LOCALS):
     except Exception as ex:
         print("まとめを作れません:", name, ex)
 
-order = [p[0] for p in PAPERS] + [p[0] for p in LOCALS]
+for n, (name, url, feed) in enumerate(BIZ):
+    try:
+        cands = rss_items(feed) if feed else []
+        print(f"RSSの記事 {len(cands)}件:", name)
+        if len(cands) < 3:
+            cands = from_gnews(url)
+        make(n, name, "biz", url, cands)
+    except Exception as ex:
+        print("まとめを作れません:", name, ex)
+
+order = [p[0] for p in PAPERS] + [p[0] for p in LOCALS] + [p[0] for p in BIZ]
 items.sort(key=lambda x: (x.get("slot") != "pm", order.index(x["site"]) if x["site"] in order else 99))
 save()
