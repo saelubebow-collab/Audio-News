@@ -23,6 +23,7 @@ SITES = [
     ("BRIDGE", "https://thebridge.jp/", ""),
     ("The H Magazine", "https://www.hakuhodo.co.jp/magazine/", r"/magazine/\d+/?$"),
     ("生活者DDM通信", "https://seikatsusha-ddm.com/", r"/article/\d+/?$"),
+    ("BUSINESS INSIDER", "https://www.businessinsider.jp/", ""),
 ]
 MAX_PER_SITE = 1   # 1サイトあたり1回に作る最大本数
 MAX_TOTAL = 4      # 全体で1回に作る最大本数
@@ -242,6 +243,10 @@ while len(todo) < MAX_TOTAL and any(per_site):
 for i, (name, e) in enumerate(reversed(todo)):
     try:
         title, text = read_article(e)
+        if re.search(r"申込|申し込み|フォーム|お問い合わせ|メールマガジン登録", title):
+            print("記事ではないのでスキップ:", title)
+            seen.add(e.link)
+            continue
         if len(text) < 200:
             print("本文が短すぎるのでスキップ:", title)
             seen.add(e.link)
