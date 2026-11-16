@@ -28,8 +28,10 @@ h1{font-size:30px;font-weight:900;letter-spacing:.02em;margin-top:8px;line-heigh
 .all{display:block;width:calc(100% - 44px);margin:16px 22px 0;background:var(--accent);color:#0b0d10;border-radius:12px;padding:14px;text-align:center;font-weight:900;font-size:15px}
 .tabs{display:flex;gap:8px;padding:18px 22px 6px;overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
-.tab{font-size:12px;padding:7px 14px;border-radius:999px;border:1px solid var(--line);color:var(--sub);white-space:nowrap;flex-shrink:0}
+.tab{position:relative;font-size:12px;padding:7px 14px;border-radius:999px;border:1px solid var(--line);color:var(--sub);white-space:nowrap;flex-shrink:0}
 .tab.on{background:var(--text);color:#0b0d10;border-color:var(--text);font-weight:700}
+.tab i{position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:#ff5a5a;border:2px solid var(--bg)}
+.tabs{padding-top:20px}
 .section{display:flex;align-items:baseline;justify-content:space-between;padding:20px 22px 10px}
 .section h2{font-size:16px;font-weight:700}
 .section span{font-size:10px;letter-spacing:.24em;color:var(--sub)}
@@ -110,6 +112,7 @@ const SHORT = {"北日本新聞":"北日本","北國新聞":"北國","新潟日�
 const $ = id => document.getElementById(id);
 const au = $("au");
 const data = {};
+let SITES = load("sites", []);
 let view = load("view", "audio"), tab = "すべて", cur = null, curView = null, pending = null;
 
 function load(k, d){ try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch(e){ return d; } }
@@ -137,16 +140,16 @@ function render(){
   const v = V(view), all = items(view), t = todayStr();
   document.documentElement.style.setProperty("--accent", v.color);
   $("eyebrow").textContent = v.eyebrow; $("h1").innerHTML = v.h1;
-  $("sw").innerHTML = VIEWS.map(w => `<button data-view="${w.id}" class="${w.id===view?"on":""}">${w.label}${w.id!==view && items(w.id).some(x => x.date === t) ? "<i></i>" : ""}</button>`).join("");
+  $("sw").innerHTML = VIEWS.map(w => `<button data-view="${w.id}" class="${w.id===view?"on":""}">${w.label}${items(w.id).length ? "<i></i>" : ""}</button>`).join("");
   const mins = Math.round(all.reduce((a, x) => a + (durs[sid(x)] || 300), 0) / 60);
   let list = all;
   if (v.remote){
     $("lead").textContent = today() + " ・ 通勤時間にちょうどいい5分ずつ";
-    const sites = ["すべて", ...new Set(all.map(site))];
+    const sites = ["すべて", ...new Set([...SITES, ...all.map(site)])];
     if (!sites.includes(tab)) tab = "すべて";
     if (tab !== "すべて") list = all.filter(x => site(x) === tab);
     $("top").innerHTML = `<div class="count"><div>NEW<b>${all.filter(x => x.date === t).length}</b></div><div>TOTAL<b>${all.length}</b></div><div>TIME<b>約${mins}分</b></div></div>
-      <div class="tabs">${sites.map(s => `<button class="tab${s===tab?" on":""}" data-tab="${esc(s)}">${esc(s)}</button>`).join("")}</div>
+      <div class="tabs">${sites.map(s => `<button class="tab${s===tab?" on":""}" data-tab="${esc(s)}">${esc(s)}${s!=="すべて" && all.some(x => site(x) === s) ? "<i></i>" : ""}</button>`).join("")}</div>
       <div class="section"><h2>未聴の解説</h2><span>LATEST</span></div>`;
   } else {
     $("lead").textContent = today() + (all.length ? ` ・ ${all.length}本 ・ 各5分で約${mins}分` : "");
@@ -155,7 +158,7 @@ function render(){
   }
   if (!list.length){
     $("list").innerHTML = data[view] === undefined ? `<div class="empty">読み込み中…</div>`
-      : `<div class="empty">${v.remote ? "未聴の解説はありません。<br>新しい記事が出たら、毎朝ここに届きます。" : "まだ今日のまとめはありません。<br>毎日5時と16時ごろに届きます。"}</div>`;
+      : `<div class="empty">${v.remote ? (tab !== "すべて" ? "このサイトの未聴の解説はありません。<br>新しい記事が出たら、赤丸でお知らせします。" : "未聴の解説はありません。<br>新しい記事が出たら、毎朝ここに届きます。") : "まだ今日のまとめはありません。<br>毎日5時と16時ごろに届きます。"}</div>`;
   } else {
     $("list").innerHTML = list.map(x => {
       const s = sid(x), n = site(x);
@@ -271,6 +274,7 @@ document.addEventListener("click", e => {
 });
 
 if (!VIEWS.some(v => v.id === view)) view = "audio";
+fetch("sites.json?" + Date.now()).then(r => r.ok ? r.json() : null).then(j => { if (Array.isArray(j)) { SITES = j; store("sites", j); render(); } }).catch(() => {});
 render();
 const srcs = [...new Set(VIEWS.map(v => v.src))];
 let ok = true;
