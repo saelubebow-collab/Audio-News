@@ -21,6 +21,8 @@ SITES = [
     ("LOCAL LETTER", "https://localletter.jp/", ""),
     ("TOMORUBA", "https://tomoruba.eiicon.net/", ""),
     ("BRIDGE", "https://thebridge.jp/", ""),
+    ("The H Magazine", "https://www.hakuhodo.co.jp/magazine/", r"/magazine/\d+/?$"),
+    ("生活者DDM通信", "https://seikatsusha-ddm.com/", r"/article/\d+/?$"),
 ]
 MAX_PER_SITE = 1   # 1サイトあたり1回に作る最大本数
 MAX_TOTAL = 4      # 全体で1回に作る最大本数
@@ -86,6 +88,7 @@ if listened.exists():
 def save():
     db_path.write_text(json.dumps(eps, ensure_ascii=False, indent=1), encoding="utf-8")
     seen_path.write_text(json.dumps(sorted(seen), ensure_ascii=False), encoding="utf-8")
+    (root / "sites.json").write_text(json.dumps([s[0] for s in SITES], ensure_ascii=False), encoding="utf-8")
 
 
 def allowed(url):
