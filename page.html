@@ -105,10 +105,11 @@ const VIEWS = [
   { id: "audio", label: "音声解説", src: "episodes.json", color: "#3b8cff", eyebrow: "MORNING AUDIO BRIEF", h1: "今日の<br>音声解説", remote: true },
   { id: "paper", label: "全国紙", src: "news.json", group: "paper", color: "#f5a524", eyebrow: "DAILY PAPER BRIEF", h1: "今日の<br>全国紙" },
   { id: "local", label: "地元紙", src: "news.json", group: "local", color: "#2fbf8f", eyebrow: "LOCAL PAPER BRIEF", h1: "今日の<br>地元紙" },
+  { id: "biz", label: "経済", src: "news.json", group: "biz", color: "#e2557a", eyebrow: "BUSINESS BRIEF", h1: "今日の<br>経済ニュース" },
 ];
 const PAL = [["#1d4fd8","#3b8cff"],["#0f766e","#34d399"],["#7c2d92","#e879f9"],["#b45309","#fbbf24"],["#be123c","#fb7185"],["#334155","#94a3b8"]];
-const MAST = {"読売新聞":"#1c2a44","朝日新聞":"#3a1d1d","毎日新聞":"#1d3326","産経新聞":"#2e2640","北日本新聞":"#13343a","北國新聞":"#3a2a14","新潟日報":"#14303f"};
-const SHORT = {"北日本新聞":"北日本","北國新聞":"北國","新潟日報":"新潟"};
+const MAST = {"読売新聞":"#1c2a44","朝日新聞":"#3a1d1d","毎日新聞":"#1d3326","産経新聞":"#2e2640","北日本新聞":"#13343a","北國新聞":"#3a2a14","新潟日報":"#14303f","東洋経済":"#3b1520","PRESIDENT Online":"#2a2216","時事通信":"#14283a"};
+const SHORT = {"北日本新聞":"北日本","北國新聞":"北國","新潟日報":"新潟","東洋経済":"東洋","PRESIDENT Online":"プレジ","時事通信":"時事"};
 const $ = id => document.getElementById(id);
 const au = $("au");
 const data = {};
@@ -148,9 +149,11 @@ function render(){
     const sites = ["すべて", ...new Set([...SITES, ...all.map(site)])];
     if (!sites.includes(tab)) tab = "すべて";
     if (tab !== "すべて") list = all.filter(x => site(x) === tab);
+    const sx = document.querySelector(".tabs") ? document.querySelector(".tabs").scrollLeft : 0;
     $("top").innerHTML = `<div class="count"><div>NEW<b>${all.filter(x => x.date === t).length}</b></div><div>TOTAL<b>${all.length}</b></div><div>TIME<b>約${mins}分</b></div></div>
       <div class="tabs">${sites.map(s => `<button class="tab${s===tab?" on":""}" data-tab="${esc(s)}">${esc(s)}${s!=="すべて" && all.some(x => site(x) === s) ? "<i></i>" : ""}</button>`).join("")}</div>
       <div class="section"><h2>未聴の解説</h2><span>LATEST</span></div>`;
+    document.querySelector(".tabs").scrollLeft = sx;
   } else {
     $("lead").textContent = today() + (all.length ? ` ・ ${all.length}本 ・ 各5分で約${mins}分` : "");
     $("top").innerHTML = (all.length ? `<button class="all" data-all="1">▶ ${all.length}本を続けて聞く</button>` : "")
