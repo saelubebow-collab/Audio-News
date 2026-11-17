@@ -2,7 +2,7 @@ name: paper-news
 
 on:
   schedule:
-    - cron: "40 21 * * *" 
+    - cron: "40 21 * * *"
     - cron: "0 7 * * *"
   workflow_dispatch:
 
@@ -17,6 +17,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment:
       name: github-pages
     steps:
@@ -31,6 +32,7 @@ jobs:
       - run: python news.py
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PYTHONUNBUFFERED: "1"
 
       - run: cp page.html docs/index.html
 
