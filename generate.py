@@ -51,11 +51,13 @@ seen = set(json.loads(seen_path.read_text(encoding="utf-8"))) if seen_path.exist
 seen |= {e["link"] for e in eps}
 dead = set()
 robots = {}
+last_path = root / "site_last.json"
+last = json.loads(last_path.read_text(encoding="utf-8")) if last_path.exists() else {}
 
 
 def broken(t):
     """文字化けしたタイトルかどうか"""
-    return bool(re.search("[à-ï][\u0080-¿]{2}", t or ""))
+    return bool(re.search("[\u00e0-\u00ef][\u0080-\u00bf]{2}", t or ""))
 
 
 # 文字化けしてしまった解説は消して、作り直す
@@ -89,6 +91,7 @@ if listened.exists():
 def save():
     db_path.write_text(json.dumps(eps, ensure_ascii=False, indent=1), encoding="utf-8")
     seen_path.write_text(json.dumps(sorted(seen), ensure_ascii=False), encoding="utf-8")
+    last_path.write_text(json.dumps(last, ensure_ascii=False), encoding="utf-8")
     (root / "sites.json").write_text(json.dumps([s[0] for s in SITES], ensure_ascii=False), encoding="utf-8")
 
 
@@ -231,7 +234,11 @@ for name, url, pattern in SITES:
         seen.add(key)
         print("初めてのサイトなので最新1本だけ:", name)
     new = [e for e in items if e.link not in seen][:MAX_PER_SITE]
+    print(f"{name}：新着 {len(new)}本")
     per_site.append([(name, e) for e in new])
+
+# 最近解説を作っていないサイトから順に選ぶ（同じサイトばかりにならないように）
+per_site.sort(key=lambda lst: last.get(lst[0][0], "") if lst else "~")
 
 # 1サイトずつ順番に選んで、全体の上限までにする
 todo = []
@@ -270,6 +277,7 @@ for i, (name, e) in enumerate(reversed(todo)):
         eps.insert(0, {"title": f"{title} - {name}", "site": name, "link": e.link,
                        "file": f"audio/{fname}.mp3", "date": TODAY.isoformat()})
         seen.add(e.link)
+        last[name] = NOW.isoformat()
         save()
         print("完成:", name, title)
     except Exception as ex:
