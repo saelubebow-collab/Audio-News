@@ -1,173 +1,73 @@
 [
  {
-  "title": "夕方のニュースまとめ",
+  "title": "朝のニュースまとめ",
   "site": "読売新聞",
   "group": "paper",
-  "slot": "pm",
+  "slot": "am",
   "count": 7,
   "link": "https://www.yomiuri.co.jp/",
-  "file": "audio/news_20261123172528_paper0.mp3",
-  "date": "2026-11-23"
+  "file": "audio/news_20261124072752_paper0.mp3",
+  "date": "2026-11-24"
  },
  {
-  "title": "夕方のニュースまとめ",
+  "title": "朝のニュースまとめ",
   "site": "朝日新聞",
   "group": "paper",
-  "slot": "pm",
+  "slot": "am",
   "count": 7,
   "link": "https://www.asahi.com/",
-  "file": "audio/news_20261123172528_paper1.mp3",
-  "date": "2026-11-23"
+  "file": "audio/news_20261124072752_paper1.mp3",
+  "date": "2026-11-24"
  },
  {
-  "title": "夕方のニュースまとめ",
+  "title": "朝のニュースまとめ",
   "site": "毎日新聞",
   "group": "paper",
-  "slot": "pm",
+  "slot": "am",
   "count": 7,
   "link": "https://mainichi.jp/",
-  "file": "audio/news_20261123172528_paper2.mp3",
-  "date": "2026-11-23"
+  "file": "audio/news_20261124072752_paper2.mp3",
+  "date": "2026-11-24"
  },
  {
-  "title": "夕方のニュースまとめ",
+  "title": "朝のニュースまとめ",
   "site": "産経新聞",
   "group": "paper",
-  "slot": "pm",
+  "slot": "am",
   "count": 7,
   "link": "https://www.sankei.com/",
-  "file": "audio/news_20261123172528_paper3.mp3",
-  "date": "2026-11-23"
+  "file": "audio/news_20261124072752_paper3.mp3",
+  "date": "2026-11-24"
  },
  {
-  "title": "夕方のニュースまとめ",
+  "title": "朝のニュースまとめ",
   "site": "北日本新聞",
   "group": "local",
-  "slot": "pm",
+  "slot": "am",
+  "count": 4,
+  "link": "https://news.yahoo.co.jp/media/kitanihon",
+  "file": "audio/news_20261124072752_local0.mp3",
+  "date": "2026-11-24"
+ },
+ {
+  "title": "朝のニュースまとめ",
+  "site": "北國新聞",
+  "group": "local",
+  "slot": "am",
+  "count": 7,
+  "link": "https://news.yahoo.co.jp/media/hokkoku",
+  "file": "audio/news_20261124072752_local1.mp3",
+  "date": "2026-11-24"
+ },
+ {
+  "title": "朝のニュースまとめ",
+  "site": "新潟日報",
+  "group": "local",
+  "slot": "am",
   "count": 5,
-  "link": "https://news.yahoo.co.jp/media/kitanihon",
-  "file": "audio/news_20261123172528_local0.mp3",
-  "date": "2026-11-23"
- },
- {
-  "title": "夕方のニュースまとめ",
-  "site": "北國新聞",
-  "group": "local",
-  "slot": "pm",
-  "count": 7,
-  "link": "https://news.yahoo.co.jp/media/hokkoku",
-  "file": "audio/news_20261123172528_local1.mp3",
-  "date": "2026-11-23"
- },
- {
-  "title": "夕方のニュースまとめ",
-  "site": "新潟日報",
-  "group": "local",
-  "slot": "pm",
-  "count": 7,
   "link": "https://news.yahoo.co.jp/media/niigatan",
-  "file": "audio/news_20261123172528_local2.mp3",
-  "date": "2026-11-23"
- },
- {
-  "title": "夕方のニュースまとめ",
-  "site": "東洋経済",
-  "group": "biz",
-  "slot": "pm",
-  "count": 7,
-  "link": "https://toyokeizai.net/",
-  "file": "audio/news_20261123172528_biz0.mp3",
-  "date": "2026-11-23"
- },
- {
-  "title": "夕方のニュースまとめ",
-  "site": "PRESIDENT Online",
-  "group": "biz",
-  "slot": "pm",
-  "count": 7,
-  "link": "https://president.jp/",
-  "file": "audio/news_20261123172528_biz1.mp3",
-  "date": "2026-11-23"
- },
- {
-  "title": "夕方のニュースまとめ",
-  "site": "時事通信",
-  "group": "biz",
-  "slot": "pm",
-  "count": 7,
-  "link": "https://www.jiji.com/",
-  "file": "audio/news_20261123172528_biz2.mp3",
-  "date": "2026-11-23"
- },
- {
-  "title": "朝のニュースまとめ",
-  "site": "読売新聞",
-  "group": "paper",
-  "slot": "am",
-  "count": 7,
-  "link": "https://www.yomiuri.co.jp/",
-  "file": "audio/news_20261123072159_paper0.mp3",
-  "date": "2026-11-23"
- },
- {
-  "title": "朝のニュースまとめ",
-  "site": "朝日新聞",
-  "group": "paper",
-  "slot": "am",
-  "count": 7,
-  "link": "https://www.asahi.com/",
-  "file": "audio/news_20261123072159_paper1.mp3",
-  "date": "2026-11-23"
- },
- {
-  "title": "朝のニュースまとめ",
-  "site": "毎日新聞",
-  "group": "paper",
-  "slot": "am",
-  "count": 7,
-  "link": "https://mainichi.jp/",
-  "file": "audio/news_20261123072159_paper2.mp3",
-  "date": "2026-11-23"
- },
- {
-  "title": "朝のニュースまとめ",
-  "site": "産経新聞",
-  "group": "paper",
-  "slot": "am",
-  "count": 7,
-  "link": "https://www.sankei.com/",
-  "file": "audio/news_20261123072159_paper3.mp3",
-  "date": "2026-11-23"
- },
- {
-  "title": "朝のニュースまとめ",
-  "site": "北日本新聞",
-  "group": "local",
-  "slot": "am",
-  "count": 7,
-  "link": "https://news.yahoo.co.jp/media/kitanihon",
-  "file": "audio/news_20261123072159_local0.mp3",
-  "date": "2026-11-23"
- },
- {
-  "title": "朝のニュースまとめ",
-  "site": "北國新聞",
-  "group": "local",
-  "slot": "am",
-  "count": 7,
-  "link": "https://news.yahoo.co.jp/media/hokkoku",
-  "file": "audio/news_20261123072159_local1.mp3",
-  "date": "2026-11-23"
- },
- {
-  "title": "朝のニュースまとめ",
-  "site": "新潟日報",
-  "group": "local",
-  "slot": "am",
-  "count": 7,
-  "link": "https://news.yahoo.co.jp/media/niigatan",
-  "file": "audio/news_20261123072159_local2.mp3",
-  "date": "2026-11-23"
+  "file": "audio/news_20261124072752_local2.mp3",
+  "date": "2026-11-24"
  },
  {
   "title": "朝のニュースまとめ",
@@ -176,8 +76,8 @@
   "slot": "am",
   "count": 7,
   "link": "https://toyokeizai.net/",
-  "file": "audio/news_20261123072159_biz0.mp3",
-  "date": "2026-11-23"
+  "file": "audio/news_20261124072752_biz0.mp3",
+  "date": "2026-11-24"
  },
  {
   "title": "朝のニュースまとめ",
@@ -186,8 +86,8 @@
   "slot": "am",
   "count": 7,
   "link": "https://president.jp/",
-  "file": "audio/news_20261123072159_biz1.mp3",
-  "date": "2026-11-23"
+  "file": "audio/news_20261124072752_biz1.mp3",
+  "date": "2026-11-24"
  },
  {
   "title": "朝のニュースまとめ",
@@ -196,7 +96,7 @@
   "slot": "am",
   "count": 7,
   "link": "https://www.jiji.com/",
-  "file": "audio/news_20261123072159_biz2.mp3",
-  "date": "2026-11-23"
+  "file": "audio/news_20261124072752_biz2.mp3",
+  "date": "2026-11-24"
  }
 ]
