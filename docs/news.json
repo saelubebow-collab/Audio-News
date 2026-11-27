@@ -1,56 +1,6 @@
 [
  {
   "title": "夕方のニュースまとめ",
-  "site": "読売新聞",
-  "group": "paper",
-  "slot": "pm",
-  "count": 7,
-  "link": "https://www.yomiuri.co.jp/",
-  "file": "audio/news_20261127172321_paper0.mp3",
-  "date": "2026-11-27"
- },
- {
-  "title": "夕方のニュースまとめ",
-  "site": "朝日新聞",
-  "group": "paper",
-  "slot": "pm",
-  "count": 7,
-  "link": "https://www.asahi.com/",
-  "file": "audio/news_20261127172321_paper1.mp3",
-  "date": "2026-11-27"
- },
- {
-  "title": "夕方のニュースまとめ",
-  "site": "毎日新聞",
-  "group": "paper",
-  "slot": "pm",
-  "count": 7,
-  "link": "https://mainichi.jp/",
-  "file": "audio/news_20261127172321_paper2.mp3",
-  "date": "2026-11-27"
- },
- {
-  "title": "夕方のニュースまとめ",
-  "site": "産経新聞",
-  "group": "paper",
-  "slot": "pm",
-  "count": 7,
-  "link": "https://www.sankei.com/",
-  "file": "audio/news_20261127172321_paper3.mp3",
-  "date": "2026-11-27"
- },
- {
-  "title": "夕方のニュースまとめ",
-  "site": "北國新聞",
-  "group": "local",
-  "slot": "pm",
-  "count": 7,
-  "link": "https://news.yahoo.co.jp/media/hokkoku",
-  "file": "audio/news_20261127172321_local1.mp3",
-  "date": "2026-11-27"
- },
- {
-  "title": "夕方のニュースまとめ",
   "site": "新潟日報",
   "group": "local",
   "slot": "pm",
@@ -60,34 +10,14 @@
   "date": "2026-11-27"
  },
  {
-  "title": "夕方のニュースまとめ",
-  "site": "東洋経済",
-  "group": "biz",
-  "slot": "pm",
-  "count": 7,
-  "link": "https://toyokeizai.net/",
-  "file": "audio/news_20261127172321_biz0.mp3",
-  "date": "2026-11-27"
- },
- {
-  "title": "夕方のニュースまとめ",
-  "site": "PRESIDENT Online",
-  "group": "biz",
-  "slot": "pm",
-  "count": 7,
-  "link": "https://president.jp/",
-  "file": "audio/news_20261127172321_biz1.mp3",
-  "date": "2026-11-27"
- },
- {
   "title": "朝のニュースまとめ",
   "site": "読売新聞",
   "group": "paper",
   "slot": "am",
   "count": 7,
   "link": "https://www.yomiuri.co.jp/",
-  "file": "audio/news_20261127073035_paper0.mp3",
-  "date": "2026-11-27"
+  "file": "audio/news_20261128073102_paper0.mp3",
+  "date": "2026-11-28"
  },
  {
   "title": "朝のニュースまとめ",
@@ -96,8 +26,8 @@
   "slot": "am",
   "count": 7,
   "link": "https://www.asahi.com/",
-  "file": "audio/news_20261127073035_paper1.mp3",
-  "date": "2026-11-27"
+  "file": "audio/news_20261128073102_paper1.mp3",
+  "date": "2026-11-28"
  },
  {
   "title": "朝のニュースまとめ",
@@ -106,8 +36,8 @@
   "slot": "am",
   "count": 7,
   "link": "https://mainichi.jp/",
-  "file": "audio/news_20261127073035_paper2.mp3",
-  "date": "2026-11-27"
+  "file": "audio/news_20261128073102_paper2.mp3",
+  "date": "2026-11-28"
  },
  {
   "title": "朝のニュースまとめ",
@@ -116,18 +46,18 @@
   "slot": "am",
   "count": 7,
   "link": "https://www.sankei.com/",
-  "file": "audio/news_20261127073035_paper3.mp3",
-  "date": "2026-11-27"
+  "file": "audio/news_20261128073102_paper3.mp3",
+  "date": "2026-11-28"
  },
  {
   "title": "朝のニュースまとめ",
   "site": "北日本新聞",
   "group": "local",
   "slot": "am",
-  "count": 4,
+  "count": 7,
   "link": "https://news.yahoo.co.jp/media/kitanihon",
-  "file": "audio/news_20261127073035_local0.mp3",
-  "date": "2026-11-27"
+  "file": "audio/news_20261128073102_local0.mp3",
+  "date": "2026-11-28"
  },
  {
   "title": "朝のニュースまとめ",
@@ -136,8 +66,8 @@
   "slot": "am",
   "count": 7,
   "link": "https://news.yahoo.co.jp/media/hokkoku",
-  "file": "audio/news_20261127073035_local1.mp3",
-  "date": "2026-11-27"
+  "file": "audio/news_20261128073102_local1.mp3",
+  "date": "2026-11-28"
  },
  {
   "title": "朝のニュースまとめ",
@@ -156,8 +86,8 @@
   "slot": "am",
   "count": 7,
   "link": "https://toyokeizai.net/",
-  "file": "audio/news_20261127073035_biz0.mp3",
-  "date": "2026-11-27"
+  "file": "audio/news_20261128073102_biz0.mp3",
+  "date": "2026-11-28"
  },
  {
   "title": "朝のニュースまとめ",
@@ -166,8 +96,8 @@
   "slot": "am",
   "count": 7,
   "link": "https://president.jp/",
-  "file": "audio/news_20261127073035_biz1.mp3",
-  "date": "2026-11-27"
+  "file": "audio/news_20261128073102_biz1.mp3",
+  "date": "2026-11-28"
  },
  {
   "title": "朝のニュースまとめ",
@@ -176,7 +106,7 @@
   "slot": "am",
   "count": 7,
   "link": "https://www.jiji.com/",
-  "file": "audio/news_20261127073035_biz2.mp3",
-  "date": "2026-11-27"
+  "file": "audio/news_20261128073102_biz2.mp3",
+  "date": "2026-11-28"
  }
 ]
